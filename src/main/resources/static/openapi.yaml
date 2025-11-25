@@ -1,0 +1,103 @@
+openapi: 3.0.3
+info:
+  title: User Notifications API
+  version: 1.0.0
+  description: API for managing user notifications
+
+servers:
+  - url: http://localhost:9090
+    description: Local development server
+
+paths:
+  /notifications:
+    get:
+      summary: Получить все непрочитанные уведомления текущего пользователя
+      operationId: getAllUnread
+      tags:
+        - Уведомления
+      responses:
+        '200':
+          description: Список непрочитанных уведомлений
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserNotificationDto'
+        '401':
+          description: Пользователь не аутентифицирован
+      security:
+        - bearerAuth: []
+
+    post:
+      summary: Пометить уведомления как прочитанные
+      operationId: markAsRead
+      tags:
+        - Уведомления
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NotificationsIdDto'
+      responses:
+        '204':
+          description: Уведомления успешно помечены как прочитанные
+        '400':
+          description: Некорректный запрос (например, отсутствует список ID)
+        '401':
+          description: Пользователь не аутентифицирован
+        '403':
+          description: Попытка пометить как прочитанные чужие уведомления
+      security:
+        - bearerAuth: []
+
+components:
+  schemas:
+    UserNotificationDto:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 123
+        notificationEventId:
+          type: integer
+          format: int64
+          example: 456
+        userId:
+          type: integer
+          format: int64
+          example: 789
+        isRead:
+          type: boolean
+          example: false
+      required:
+        - id
+        - notificationEventId
+        - userId
+        - isRead
+
+    NotificationsIdDto:
+      type: object
+      required:
+        - notificationIds
+      properties:
+        notificationIds:
+          type: array
+          items:
+            type: integer
+            format: int64
+            example: 123
+          minItems: 1
+      example:
+        notificationIds:
+          - 1
+          - 2
+          - 3
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
