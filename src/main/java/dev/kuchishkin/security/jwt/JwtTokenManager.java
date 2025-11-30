@@ -1,6 +1,7 @@
 package dev.kuchishkin.security.jwt;
 
 
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import java.util.Date;
@@ -23,24 +24,20 @@ public class JwtTokenManager {
         this.lifetime = lifetime;
     }
 
-    public String generateToken(String login) {
-        return Jwts
-            .builder()
-            .subject(login)
-            .signWith(secretKey)
-            .issuedAt(new Date())
-            .expiration(new Date(System.currentTimeMillis() + lifetime))
-            .compact();
-    }
-
-    public String getLoginFromToken(String token) {
-        return Jwts
-            .parser()
+    public Long getUserIdFromToken(String token) {
+        return Jwts.parser()
             .verifyWith(secretKey)
             .build()
             .parseSignedClaims(token)
             .getPayload()
-            .getSubject();
+            .get("user_id", Long.class);
     }
 
+    public Claims getClaimsFromToken(String token) {
+        return Jwts.parser()
+            .verifyWith(secretKey)
+            .build()
+            .parseSignedClaims(token)
+            .getPayload();
+    }
 }

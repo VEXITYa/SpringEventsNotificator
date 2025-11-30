@@ -5,8 +5,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.AuthenticationProvider;
-import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
@@ -19,16 +17,13 @@ import org.springframework.security.web.authentication.AnonymousAuthenticationFi
 @Configuration
 public class SecurityConfig {
 
-    private final CustomUserDetailsService customUserDetailsService;
     private final CustomAuthenticationEntryPoint authenticationEntryPoint;
     private final JwtTokenFilter jwtTokenFilter;
 
     public SecurityConfig(
-        CustomUserDetailsService customUserDetailsService,
         CustomAuthenticationEntryPoint authenticationEntryPoint,
         JwtTokenFilter jwtTokenFilter
     ) {
-        this.customUserDetailsService = customUserDetailsService;
         this.authenticationEntryPoint = authenticationEntryPoint;
         this.jwtTokenFilter = jwtTokenFilter;
     }
@@ -49,11 +44,11 @@ public class SecurityConfig {
                     )
                     .permitAll()
                     .requestMatchers(HttpMethod.GET, "/notifications")
-                        .hasAnyAuthority("USER", "ADMIN")
+                    .hasAnyAuthority("USER", "ADMIN")
                     .requestMatchers(HttpMethod.POST, "/notifications")
-                        .hasAnyAuthority("USER", "ADMIN")
+                    .hasAnyAuthority("USER", "ADMIN")
                     .anyRequest()
-                        .authenticated()
+                    .authenticated()
             )
             .exceptionHandling(exception ->
                 exception.authenticationEntryPoint(authenticationEntryPoint))
@@ -65,14 +60,6 @@ public class SecurityConfig {
     public AuthenticationManager authenticationManagerBean(
         AuthenticationConfiguration configuration) throws Exception {
         return configuration.getAuthenticationManager();
-    }
-
-    @Bean
-    public AuthenticationProvider authenticationProviderBean() {
-        var authenticationProvider = new DaoAuthenticationProvider();
-        authenticationProvider.setUserDetailsService(customUserDetailsService);
-        authenticationProvider.setPasswordEncoder(passwordEncoder());
-        return authenticationProvider;
     }
 
     @Bean

@@ -1,6 +1,6 @@
 package dev.kuchishkin.security.jwt;
 
-import dev.kuchishkin.service.UserService;
+import dev.kuchishkin.model.JwtUserPrincipal;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -9,7 +9,6 @@ import java.io.IOException;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -22,11 +21,9 @@ public class JwtTokenFilter extends OncePerRequestFilter {
     private final static Logger LOGGER = LoggerFactory.getLogger(JwtTokenFilter.class);
 
     private final JwtTokenManager jwtTokenManager;
-    private final UserService userService;
 
-    public JwtTokenFilter(JwtTokenManager jwtTokenManager, @Lazy UserService userService) {
+    public JwtTokenFilter(JwtTokenManager jwtTokenManager) {
         this.jwtTokenManager = jwtTokenManager;
-        this.userService = userService;
     }
 
 
@@ -40,23 +37,21 @@ public class JwtTokenFilter extends OncePerRequestFilter {
         }
         var jwt = authHeader.substring(7);
 
-        String login;
-        try {
-            login = jwtTokenManager.getLoginFromToken(jwt);
-        } catch (Exception e) {
-            logger.error("Error reading jwt", e);
-            filterChain.doFilter(request, response);
-            return;
+        var claims = jwtTokenManager.getClaimsFromToken(jwt);
+        String login = claims.getSubject();
+        Long userId = claims.get("user_id", Long.class);
+
+        if (login != null && userId != null
+            && SecurityContextHolder.getContext().getAuthentication() == null) {
+            var authorities = List.of(new SimpleGrantedAuthority("USER"));
+            var authentication = new UsernamePasswordAuthenticationToken(
+                new JwtUserPrincipal(login, userId),
+                null,
+                authorities
+            );
+            SecurityContextHolder.getContext().setAuthentication(authentication);
         }
 
-        var user = userService.findByLogin(login);
-
-        UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(
-            user,
-            null,
-            List.of(new SimpleGrantedAuthority(user.role().name()))
-        );
-        SecurityContextHolder.getContext().setAuthentication(token);
         filterChain.doFilter(request, response);
     }
 }
